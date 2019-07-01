@@ -1,0 +1,14 @@
+#!/bin/bash
+FC_FORMAT='%{family}\n'
+FC_PATTERN=':lang=ru'
+
+fc-list -f "$FC_FORMAT" "$FC_PATTERN" | sort -u | gawk -f test-font.awk
+
+for font in "${fonts[@]}"; do
+  clear
+  echo
+  echo "$font"; set_font "$font"
+  echo
+  echo_test_chars | ${PAGER:-more}
+done
+# vim: set ft=sh et sw=2 ts=2:

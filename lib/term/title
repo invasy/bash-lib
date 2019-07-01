@@ -1,0 +1,46 @@
+#!/bin/bash
+## @file    $XDG_DATA_HOME/bash/term/title
+## @brief   Set terminal window title.
+## @author  Vasiliy Polyakov
+## @date    2014-2017
+## @pre     bash>=4.0  (GNU Bourne again shell).
+## @pre     terminal.
+
+####  Source guard  #######################################################@{1
+[ x"$BASH_VERSION" = x  ] && return 69  # UNAVAILABLE
+(( __BASH_TERM_TITLE__ )) && return  0  # Sourced already
+declare -gri __BASH_TERM_TITLE__=1
+
+declare -gA terminfo
+
+declare -i used=0
+[[ $(type -t is_used) == 'function' ]] && is_used && used=1
+
+####  Terminfo capabilities  ##############################################@{1
+if [[ $TMUX ]]; then
+  terminfo[tsl]=$'\e]2;' terminfo[fsl]=$'\e\\'
+elif tput hs; then
+  terminfo[tsl]="$(tput tsl)" terminfo[fsl]="$(tput fsl)"
+else
+  (( used )) && return 1 || exit 1
+fi
+
+####  Exported functions  #################################################@{1
+title() {
+  shopt -qs extglob
+
+  local title="$*"
+  title="${title@Q}"
+  title="${title//\'\\\'\'/\'}"
+  title="${title//\\\'/\'}"
+  if [[ ${#title} > 1 ]]; then
+    title="${title#?(\$)\'}"
+    title="${title%\'}"
+  fi
+
+  printf "${terminfo[tsl]}%s${terminfo[fsl]}" "$title"
+}
+
+(( used )) || title "$@"
+
+# vim: set et sw=2 ts=2 fen fdm=marker fmr=@{,@}:
