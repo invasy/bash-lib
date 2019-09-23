@@ -1,11 +1,9 @@
-# $XDG_DATA_HOME/bash/scripts/signals.awk
-# Print signal error codes for Bash.
+# signals.awk - print signal error codes for bash-lib
 #
-# Copyright © 2016-2017 Vasiliy Polyakov <vp at psu dot ru>
+# Copyright © 2016-2019 Vasiliy Polyakov <invasy.v@gmail.com>
 #
 # Usage:
 #     builtin kill -l | gawk -f "$XDG_DATA_HOME/bash/scripts/signals.awk"
-#   or
 #     /bin/kill -L | gawk -f "$XDG_DATA_HOME/bash/scripts/signals.awk"
 
 BEGIN {

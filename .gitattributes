@@ -1,9 +1,10 @@
 * text=auto
 
-.gitattributes  text export-ignore
-.gitignore      text export-ignore
-
-*.md    text
 *.sh    eol=lf
 *.bash  eol=lf
 *.bats  eol=lf
+
+*.md    text
+
+.gitattributes  text export-ignore
+.gitignore      text export-ignore

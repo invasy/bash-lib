@@ -1,4 +1,4 @@
-## @file    $XDG_DATA_HOME/bash/lib.sh
+## @file    $XDG_DATA_HOME/bash/lib.bash
 ## @brief   Bash scripting library.
 ## @author  Vasiliy Polyakov
 ## @date    2016-2019
@@ -7,15 +7,19 @@
 ## @pre     doxygen    (for API reference, optional).
 
 ####  Source guard  #######################################################@{1
-[  x"$BASH_VERSION" = x  ] && return 1  # Current shell is not Bash.
-(( BASH_VERSINFO[0] < 4 )) && return 2  # Bash version is not unsupported.
-[[ $BASH_LIB            ]] && return 0  # Sourced already.
+if [ x"$BASH_VERSION" = x ]; then
+  return 1  # Current shell is not Bash
+elif (( BASH_VERSINFO[0] < 4 )); then
+  return 2  # Bash version is not supported
+elif [[ $BASH_LIB ]]; then
+  return 0  # Sourced already
+elif ! type -f realpath dirname &>/dev/null; then
+  return 3  # Coreutils are not installed
+fi
 
-type -f realpath dirname &>/dev/null || return 3  # Package @c Coreutils is not installed.
-
-## @c $BASH_LIB contains the path to the Bash library directory.
-declare -gr BASH_LIB="$(realpath -qe "$(dirname "${BASH_SOURCE[0]}")")/lib"
-declare -gr BASH_SCRIPTS="$(realpath -qe "$(dirname "${BASH_SOURCE[0]}")")/scripts"
+_lib_path="$(dirname "$(realpath --quiet --canonicalize-existing "${BASH_SOURCE[0]}")")"
+## @c BASH_LIB contains the path to the Bash library directory.
+declare -gr BASH_LIB="$_lib_path/lib"
 
 ####  Private functions  ##################################################@{1
 _lib::init() {
@@ -26,14 +30,13 @@ _lib::init() {
   shopt -qs expand_aliases
 
   # Constants
-  declare -gra _lib_suffixes=(.sh .bash)  ##< Library filename suffixes.
+  declare -gr _lib_suffix='.sh'  ##< Library filename suffix.
   declare -gra _lib_sublibs=(colors prompts)  ##< Sublibraries.
 
   # Regular expressions
   # Special characters in regular expressions (@see regex(7)).
   declare -gra _re_chars=('|' '*' '+' '?' '{' '}' '(' ')' '[' ']' '.' '^' '$' '\')
   declare -gA _lib_re
-  _lib_re[suffix]="$(_a2re "${_lib_suffixes[@]}")"
   _lib_re[sublib]='^.*/'"$(_a2re "${_lib_sublibs[@]}")"'/.*'"${_lib_re[suffix]}"'$'
   declare -gr _lib_re
 }
@@ -123,26 +126,16 @@ use() {
 
   local lib="$1" suffix; shift
 
-  if [[ ${lib:0:1} != '/' ]]; then
-    # Relative path specified as $1.
-    lib="$BASH_LIB/$lib"
-  fi
-
-  if [[ ! -f $lib ]]; then
-    # Try to add a filename suffix.
-    for suffix in "${_lib_suffixes[@]}"; do
-      if [[ -f "$lib$suffix" ]]; then
-        lib+="$suffix"
-        break
-      fi
-    done
-  fi
+  # Relative path specified as the first positional argument
+  [[ ${lib:0:1} != '/' ]] && lib="$BASH_LIB/$lib"
+  # Try to add a filename suffix
+  [[ ! -f "$lib" && -f "$lib$_lib_suffix" ]] && lib+="$_lib_suffix"
 
   [[ ! -f $lib ]] && throw -c NOINPUT "$(_ "no such file: '%s'")" "$lib"
   [[ ! -r $lib ]] && throw -c NOINPUT "$(_ "cannot read file: '%s'")" "$lib"
 
   if [[ $lib =~ ${_lib_re[sublib]} ]]; then
-    # Use main library before sublibrary.
+    # Use main library before sublibrary
     use "${BASH_REMATCH[1]}" && "_use_${BASH_REMATCH[1]}"
   else
     source "$lib" "$@"

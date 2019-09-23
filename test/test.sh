@@ -1,5 +1,8 @@
 #!/bin/bash
-# vim: set et sw=2 ts=2:
+# vim: set ft=sh et sw=2 ts=2:
+
+echo "$(dirname "$(realpath --quiet --canonicalize-existing "${BASH_SOURCE[0]}")")"
+exit 0
 
 . ./lib.sh
 #use term/title

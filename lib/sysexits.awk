@@ -1,7 +1,6 @@
-# $XDG_DATA_HOME/bash/scripts/sysexits.awk
-# Convert sysexits for library use.
+# sysexits.awk - convert sysexits for use in bash-lib
 #
-# Copyright © 2016-2017 Vasiliy Polyakov <vp at psu dot ru>
+# Copyright © 2016-2019 Vasiliy Polyakov <invasy.v@gmail.com>
 #
 # Usage:
 #     gawk -f "$XDG_DATA_HOME/bash/scripts/sysexits.awk" /usr/include/sysexits.h
