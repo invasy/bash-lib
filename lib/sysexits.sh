@@ -2,7 +2,6 @@
 ## @brief   Bash exit/return codes.
 ## @author  Vasiliy Polyakov
 ## @date    2016-2019
-## @pre     bash      (GNU Bourne again shell).
 ## @pre     lib.bash  (Bash scripting library).
 ## @pre     gawk      (GNU AWK) for constants list generation.
 ## @see     Advanced Bash-Scripting Guide:
@@ -12,17 +11,17 @@
 ##          (/usr/include/sysexits.h
 ##          or http://linux.die.net/include/sysexits.h)
 
-source_guard || return $?
+import_once || return $?
 
 ####  Functions  ##########################################################@{1
 _sysexits::from_h() {
   type -f gawk &>/dev/null || return 1
-  gawk -f "$BASH_SCRIPTS/sysexits.awk" /usr/include/sysexits.h
+  gawk -f "$BASH_LIB/sysexits.awk" /usr/include/sysexits.h
 }
 
 _sysexits::signals() {
   type -f gawk &>/dev/null || return 1
-  builtin kill -l | gawk -f "$BASH_SCRIPTS/signals.awk"
+  builtin kill -l | gawk -f "$BASH_LIB/signals.awk"
 }
 
 ####  Constants  ##########################################################@{1
@@ -76,7 +75,40 @@ EX[INVAL]=128       ##< invalid argument to exit
 ## @}
 
 # 128+n - caught a signal @{
-eval "$(_sysexits::signals)"
+#eval "$(_sysexits::signals)"
+EX[SIGHUP]=129
+EX[SIGINT]=130
+EX[SIGQUIT]=131
+EX[SIGILL]=132
+EX[SIGTRAP]=133
+EX[SIGABRT]=134
+EX[SIGEMT]=135
+EX[SIGFPE]=136
+EX[SIGKILL]=137
+EX[SIGBUS]=138
+EX[SIGSEGV]=139
+EX[SIGSYS]=140
+EX[SIGPIPE]=141
+EX[SIGALRM]=142
+EX[SIGTERM]=143
+EX[SIGURG]=144
+EX[SIGSTOP]=145
+EX[SIGTSTP]=146
+EX[SIGCONT]=147
+EX[SIGCHLD]=148
+EX[SIGTTIN]=149
+EX[SIGTTOU]=150
+EX[SIGIO]=151
+EX[SIGXCPU]=152
+EX[SIGXFSZ]=153
+EX[SIGVTALRM]=154
+EX[SIGPROF]=155
+EX[SIGWINCH]=156
+EX[SIGPWR]=157
+EX[SIGUSR1]=158
+EX[SIGUSR2]=159
+EX[SIGRTMIN]=160
+EX[SIGRTMAX]=192
 declare -gr EX
 #@}
 

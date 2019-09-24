@@ -2,12 +2,11 @@
 ## @brief   Bash exception handling.
 ## @author  Vasiliy Polyakov
 ## @date    2016-2019
-## @pre     bash           (GNU Bourne again shell).
-## @pre     lib.bash       (Bash scripting library).
-## @pre     sysexits.bash  (exit/return code constants).
+## @pre     lib.bash     (Bash scripting library).
+## @pre     sysexits.sh  (exit/return code constants).
 
-source_guard || return $?
-use sysexits
+import_once || return $?
+import sysexits
 
 ####  Private functions  ##################################################@{1
 _exceptions::init() {
@@ -74,7 +73,7 @@ fi' ERR
 _exceptions::match() {
   [[ $1 == 'all' || $1 == '*' ]] && return 0
 
-  local n c conditions=0  # Sic! It's a zero here.
+  local n c conditions=0  # Sic! It's a zero here. Don't touch!
 
   for n in ${1//*([ \t]);*([ \t])/ }; do
     case $n in

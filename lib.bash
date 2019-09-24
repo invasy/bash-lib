@@ -7,19 +7,13 @@
 ## @pre     doxygen    (for API reference, optional).
 
 ####  Source guard  #######################################################@{1
-if [ x"$BASH_VERSION" = x ]; then
-  return 1  # Current shell is not Bash
-elif (( BASH_VERSINFO[0] < 4 )); then
-  return 2  # Bash version is not supported
-elif [[ $BASH_LIB ]]; then
-  return 0  # Sourced already
-elif ! type -f realpath dirname &>/dev/null; then
-  return 3  # Coreutils are not installed
-fi
+[ x"$BASH_VERSION" = x ] && return 1  # Current shell is not Bash
+(( BASH_VERSINFO[0] < 4 )) && return 2  # Bash version is not supported
+[[ -n $BASH_LIB ]] && return 0  # Sourced already
+type -f realpath dirname &>/dev/null || return 3  # Coreutils are not installed
 
-_lib_path="$(dirname "$(realpath --quiet --canonicalize-existing "${BASH_SOURCE[0]}")")"
 ## @c BASH_LIB contains the path to the Bash library directory.
-declare -gr BASH_LIB="$_lib_path/lib"
+declare -gr BASH_LIB="$(dirname "$(realpath -qe "${BASH_SOURCE[0]}")")/lib"
 
 ####  Private functions  ##################################################@{1
 _lib::init() {
@@ -29,16 +23,9 @@ _lib::init() {
   shopt -qs xpg_echo  # echo expands backslash-escape sequences by default
   shopt -qs expand_aliases
 
-  # Constants
-  declare -gr _lib_suffix='.sh'  ##< Library filename suffix.
-  declare -gra _lib_sublibs=(colors prompts)  ##< Sublibraries.
-
   # Regular expressions
   # Special characters in regular expressions (@see regex(7)).
-  declare -gra _re_chars=('|' '*' '+' '?' '{' '}' '(' ')' '[' ']' '.' '^' '$' '\')
-  declare -gA _lib_re
-  _lib_re[sublib]='^.*/'"$(_a2re "${_lib_sublibs[@]}")"'/.*'"${_lib_re[suffix]}"'$'
-  declare -gr _lib_re
+  declare -gra _regex_chars=('|' '*' '+' '?' '{' '}' '(' ')' '[' ']' '.' '^' '$' '\')
 }
 
 ## Convert an array to a regular expression.
@@ -79,33 +66,34 @@ is_sourced() {
   [[ ${FUNCNAME[frame]} == 'source' ]]
 }
 
-## Is this script 'used'?
+## Is this script imported?
 ## @param   $1  Function call stack frame number (>= 1).
 ## @return  Boolean value.
-## @retval  0  'Used'.
-## @retval  1  Not 'used'.
-is_used() {
+## @retval  0  Imported.
+## @retval  1  Not imported.
+is_imported() {
   local -i frame="${1:-1}"
-  [[ ${FUNCNAME[frame]} == 'source' && ${FUNCNAME[frame+1]} == 'use' ]]
+  [[ ${FUNCNAME[frame]} == 'source' && ${FUNCNAME[frame+1]} == 'import' ]]
 }
 
-## Source a library file only once.
-## @detail Use `source_guard || return $?` at the beginning of the Bash library file (@c *.bash).
-## @return Source error.
-## @retval  64 this file was not properly sourced ('used').
+## Import a library file only once.
+## @detail Use `import_once || return $?`
+##         at the beginning of the Bash library file (@c lib/*.sh).
+## @return Import error.
+## @retval  64 this library was not imported.
 ## @retval  69 Bash lib was not initialized correctly.
-## @retval 127 source_guard: command not found (retured by Bash).
-source_guard() {
+## @retval 127 import_once: command not found (retured by Bash).
+import_once() {
   [ x"$BASH_LIB" = x ] && return 69  # UNAVAILABLE
 
   local name="$(relpath "${BASH_SOURCE[1]}" "$BASH_LIB")"
   name="${name%.*}"; name="_BASH_${name^^}_"
 
-  eval "(( $name ))" && return 0  # Sourced already
-  is_used 2 || return 64  # USAGE
+  eval "(( $name ))" && return 0  # Imported already
+  is_imported 2 || return 64  # USAGE
 
   local -i version="${1:-1}"
-  eval "declare -gri $name='${1:-1}'"
+  eval "declare -gri $name='$version'"
 
   return 0
 }
@@ -114,32 +102,26 @@ source_guard() {
 ## @name  Source libraries.
 ## @{
 
-## Use (source) Bash scripting library.
+## Import Bash library.
 ## @param   $1  Library name.
 ## @param   $@  Additional parameters for the library.
 ## @return  Nothing.
 ## @throw   USAGE    Missing library name.
 ## @throw   NOINPUT  Library file not found.
 ## @throw   NOINPUT  Cannot read library file.
-use() {
-  [[ ! $1 ]] && throw -c USAGE "$(_ 'arg 1: missing library name')"
-
-  local lib="$1" suffix; shift
+import() {
+  [[ -n $1 ]] || throw -c USAGE "$(_ 'arg 1: missing library name')"
+  local lib="$1"; shift
 
   # Relative path specified as the first positional argument
   [[ ${lib:0:1} != '/' ]] && lib="$BASH_LIB/$lib"
   # Try to add a filename suffix
-  [[ ! -f "$lib" && -f "$lib$_lib_suffix" ]] && lib+="$_lib_suffix"
+  [[ ! -f "$lib" && -f "${lib}.sh" ]] && lib+='.sh'
 
-  [[ ! -f $lib ]] && throw -c NOINPUT "$(_ "no such file: '%s'")" "$lib"
-  [[ ! -r $lib ]] && throw -c NOINPUT "$(_ "cannot read file: '%s'")" "$lib"
+  [[ -f $lib ]] || throw -c NOINPUT "$(_ "no such file: '%s'")" "$lib"
+  [[ -r $lib ]] || throw -c NOINPUT "$(_ "cannot read file: '%s'")" "$lib"
 
-  if [[ $lib =~ ${_lib_re[sublib]} ]]; then
-    # Use main library before sublibrary
-    use "${BASH_REMATCH[1]}" && "_use_${BASH_REMATCH[1]}"
-  else
-    source "$lib" "$@"
-  fi
+  source "$lib" "$@"
 }
 ## @}
 
@@ -152,8 +134,8 @@ use() {
 ## @throw   USAGE  Missing array name.
 ## @throw   USAGE  Missing value to find.
 in_array() {
-  [[ ! $1 ]] && throw -c USAGE "$(_ 'arg 1: missing array name')"
-  [[ ! $2 ]] && throw -c USAGE "$(_ 'arg 2: missing value to find')"
+  [[ -n $1 ]] || throw -c USAGE "$(_ 'arg 1: missing array name')"
+  [[ -n $2 ]] || throw -c USAGE "$(_ 'arg 2: missing value to find')"
 
   local -n haystack="$1"
   local needle="$2" hay
@@ -165,7 +147,7 @@ in_array() {
   return 1
 }
 
-## Output path to @c file relative to specified or current directory.
+## @brief   Output path to @c file relative to specified or current directory.
 ## @param   $1  Filename.
 ## @param   $2  Directory name [$PWD].
 ## @return  Nothing.
@@ -175,6 +157,6 @@ relpath() {
 }
 
 _lib::init
-use exceptions
+import exceptions
 
 # vim: set et sw=2 ts=2 fen fdm=marker fmr=@{,@}:
