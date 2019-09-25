@@ -9,7 +9,7 @@
 ## @see https://gitweb.gentoo.org/repo/gentoo.git/tree/app-shells/bash/files/bashrc
 
 import_once || return $?
-import color
+import colors
 import git
 
 declare -gA PROMPT_COLOR PROMPT_CHAR
@@ -83,6 +83,7 @@ prompt::ssh_color() {
 
 prompt::cmd() {
   local x
+  history -a
   [[ -z $MC_SID ]] && echo -en '\e[6n' && read -sdR x && (( ${x##*;} > 1 )) && echo
 }
 
