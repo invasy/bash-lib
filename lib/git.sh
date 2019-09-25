@@ -7,55 +7,55 @@
 
 import_once || return $?
 
-_git::in_work_tree() {
+git::in_work_tree() {
   local inside="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
   [[ $inside == 'true' ]]
 }
 
-_git::in_git_dir() {
+git::in_git_dir() {
   local inside="$(git rev-parse --is-inside-git-dir 2>/dev/null)"
   [[ $inside == 'true' ]]
 
 }
 
-_git::dir() {
+git::dir() {
   git rev-parse --git-dir 2>/dev/null
 }
 
-_git::branch() {
+git::branch() {
   git rev-parse --abbrev-ref --symbolic-full-name @
 }
 
-_git::remote() {
+git::remote() {
   git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
 }
 
-_git::is_changed() {
-  git diff --quiet
+git::is_changed() {
+  ! git diff --quiet
 }
 
-_git::is_staged() {
-  git diff --cached --quiet
+git::is_staged() {
+  ! git diff --cached --quiet
 }
 
-_git::changed_num() {
+git::changed() {
   git diff --numstat | wc --lines
 }
 
-_git::staged_num() {
+git::staged() {
   git diff --cached --numstat | wc --lines
 }
 
-_git::ahead_num() {
+git::ahead() {
   git log --no-decorate --no-merges --oneline @{upstream}..@ | wc --lines
 }
 
-_git::behind_num() {
+git::behind() {
   git log --no-decorate --no-merges --oneline @..@{upstream} | wc --lines
 }
 
-_git::progress() {
-  local dir="$(_git::dir)" in
+git::action() {
+  local dir="$(git::dir)" in
 
   if [[ -f "$dir/MERGE_HEAD" ]]; then
     in="$(_ MERGE)"
@@ -81,3 +81,4 @@ _git::progress() {
 
   [[ -n $in ]] && echo "$in"
 }
+

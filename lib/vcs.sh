@@ -19,13 +19,13 @@ declare -gA VCS_CHAR=(
 )
 
 vcs::prompt() {
-  if _git::in_work_tree; then
+  if git::in_work_tree; then
     local branch="$(_git::branch)"
     local progress="$(_git::progress)"
 
     local status="\[${FG[13]}\]$branch\[${SGR0}\]"
-    _git::is_changed   || status+="\[${FG[11]}\]${VCS_CHAR[changed]}\[${SGR0}\]"
-    _git::is_staged    || status+="\[${FG[10]}\]${VCS_CHAR[staged]}\[${SGR0}\]"
+    git::is_changed && status+="\[${FG[11]}\]${VCS_CHAR[changed]}\[${SGR0}\]"
+    git::is_staged  && status+="\[${FG[10]}\]${VCS_CHAR[staged]}\[${SGR0}\]"
     [[ -n $progress ]] && status+="\[${FG[9]}\]${VCS_CHAR[progress]}${progress}\[${SGR0}\]"
 
     echo "[$status]"
