@@ -66,7 +66,10 @@ prompt::vcs() {
 }
 
 prompt::venv() {
-  [[ -n $VIRTUAL_ENV ]] && echo -en " (${PROMPT_COLOR[venv]}${VIRTUAL_ENV##*/}${PROMPT_COLOR[reset]})"
+  [[ -n $VIRTUAL_ENV ]] || return
+
+  
+  echo -en " (${PROMPT_COLOR[venv]}${VIRTUAL_ENV##*/}${PROMPT_COLOR[reset]})"
 }
 
 prompt::user_color() {
