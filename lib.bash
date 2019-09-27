@@ -41,7 +41,8 @@ title() { false; }
 ## @retval  0  Sourced.
 ## @retval  1  Not sourced.
 is_sourced() {
-  [[ ${FUNCNAME[${1:-1}]} == 'source' ]]
+  local -i frame="${1:-1}"
+  [[ ${FUNCNAME[frame]} == 'source' ]]
 }
 
 ## @brief   Is this script imported?
@@ -55,21 +56,22 @@ is_imported() {
 }
 
 ## @brief   Import a library file only once.
-## @detail  Use `import_once || return $?`
+## @detail  Use `import_once || return $(($?-1))`
 ##          at the beginning of the Bash library file (@c lib/*.sh).
 ## @return  Import error.
 ## @retval    0  OK.
-## @retval    1  Bash lib was not initialized correctly.
-## @retval    2  This lib was not imported correctly.
+## @retval    1  Library has been imported already.
+## @retval    2  Bash lib was not initialized correctly.
+## @retval    3  This library was not imported correctly.
 ## @retval  127  import_once: command not found (retured by Bash).
 import_once() {
-  [ x"$BASH_LIB" = x ] && return 1
+  [ x"$BASH_LIB" = x ] && return 2
 
   local name="$(relpath "${BASH_SOURCE[1]}" "$BASH_LIB")"
   name="${name%.*}"; name="_BASH_${name^^}_"
 
-  eval "(($name))" && return 0
-  is_imported 2 || return 2
+  eval "(($name))" && return 1
+  is_imported 2 || return 3
 
   local -i version="${1:-1}"
   eval "declare -gri $name='$version'"

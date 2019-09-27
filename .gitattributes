@@ -1,8 +1,9 @@
 * text=auto
 
-*.sh    eol=lf
-*.bash  eol=lf
-*.bats  eol=lf
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.bats  text eol=lf
+*.awk   text eol=lf
 
 *.md    text
 

@@ -11,7 +11,7 @@
 ##          (/usr/include/sysexits.h
 ##          or http://linux.die.net/include/sysexits.h)
 
-import_once || return $?
+import_once || return $(($?-1))
 
 ####  Functions  ##########################################################@{1
 _sysexits::from_h() {

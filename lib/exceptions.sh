@@ -5,7 +5,7 @@
 ## @pre     lib.bash     (Bash scripting library).
 ## @pre     sysexits.sh  (exit/return code constants).
 
-import_once || return $?
+import_once || return $(($?-1))
 import sysexits
 
 ####  Private functions  ##################################################@{1

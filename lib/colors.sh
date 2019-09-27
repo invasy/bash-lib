@@ -5,89 +5,86 @@
 ## @pre     lib.bash  (Bash scripting library).
 ## @pre     ncurses   (tput).
 
-import_once || return $?
+import_once || return $(($?-1))
 
-declare -gi COLORS
-declare -ga FG BG
-declare -gA SGR
+if ! type -p tput >/dev/null || [[ $1 == '0' ]]; then
+  declare -gir COLORS=0
+  declare -gr SGR0=''
+  SGR() { :; }
+  return 0
+fi
 
-local -i arrays=0 funcs=0 terminfo=0
-while (( $# )); do
-  case $1 in
-    0) declare -r COLORS=0 FG=() BG=() SGR=(); return 0 ;;
-    funcs) funcs=1 ;;
-    arrays) arrays=1 ;;
-    terminfo) terminfo=1 ;;
-  esac; shift
-do
+declare -gir COLORS="$(tput colors)"
+declare -gr  SGR0=$'\e[m'
 
-COLORS="$(tput colors)"
+_colors::to_attr() {
+  local OPT OPTARG
+  local -i OPTIND color bg=0
 
-_colors::get() {
-  
+  while getopts ':bf' OPT; do
+    case $OPT in
+      f) bg=0  ;;
+      b) bg=10 ;;
+    esac
+  done; shift $(( OPTIND - 1 ))
+
+  color="$1"
+
+  if (( color < 8 && color >= 0 )); then
+    echo $(( color + 30 + bg ))
+  elif (( color < 16 )); then
+    echo $(( color + 82 + bg ))
+  elif (( color < 256 )); then
+    echo $(( 38 + bg )) 5 $color
+  fi
 }
 
 SGR() {
+  local OPT OPTARG E='-e' P0='' P1=''
   local -i OPTIND
-  local OPT OPTARG
-  local -a a
+  local -a A C C8 C16 C256
+  
+  while getopts ':Ep' OPT; do
+    case $OPT in
+      E) E='' ;;
+      p) P0='\[' P1='\]' ;;
+    esac
+  done; shift $(( OPTIND - 1 ))
 
-  shopt -qs extglob
   while (( $# )); do
     case $1 in
-      fg=+([0-9])) a+=() ;;
+      fg=+([0-9])) C+=($(_colors::to_attr -f "${1#*=}")) ;;
+      bg=+([0-9])) C+=($(_colors::to_attr -b "${1#*=}")) ;;
+      fg8=+([0-9])) C8+=($(_colors::to_attr -f "${1#*=}")) ;;
+      bg8=+([0-9])) C8+=($(_colors::to_attr -b "${1#*=}")) ;;
+      fg16=+([0-9])) C16+=($(_colors::to_attr -f "${1#*=}")) ;;
+      bg16=+([0-9])) C16+=($(_colors::to_attr -b "${1#*=}")) ;;
+      fg256=+([0-9])) C256+=($(_colors::to_attr -f "${1#*=}")) ;;
+      bg256=+([0-9])) C256+=($(_colors::to_attr -b "${1#*=}")) ;;
+      fg=@(default|def|d)) A+=(39) ;;
+      bg=@(default|def|d)) A+=(49) ;;
+      reset|r) A+=(0) ;;
+      bold|b) A+=(1) ;;
+      dim) A+=(2) ;;
+      italics|i) A+=(3) ;;
+      underline|undescore|uline|ul|u) A+=(4) ;;
+      blink) A+=(5) ;;
+      reverse|inverse) A+=(7) ;;
+      normal|n) A+=(22) ;;
+      +([0-9])) A+=($1)
     esac; shift
   done
-}
-
-_colors::init_arrays() {
-  local -i c
-
-  if (( terminfo )); then
-    for (( c = 0; c < COLORS; c++ )); do
-      FG[c]="$(tput setaf "$c")"
-      BG[c]="$(tput setab "$c")"
-    done
-    SGR[bold]="$(tput bold)"
-    SGR[dim]="$(tput dim)"
-    SGR[italics]="$(tput sitm)"
-    SGR[uline]="$(tput smul)"
-    SGR[blink]="$(tput blink)"
-    SGR[reverse]="$(tput rev)"
-    SGR[reset]="$(tput sgr0)"
-  else
-    local CSI=$'\e['
-    for (( c = 0; c < 8 && COLORS >= 8; c++ )); do
-      FG[c]="${CSI}$((30+c))m"
-      BG[c]="${CSI}$((40+c))m"
-    done
-    for (( c = 8; c < 16 && COLORS >= 16; c++ )); do
-      FG[c]="${CSI}$((82+c))m"
-      BG[c]="${CSI}$((92+c))m"
-    done
-    for (( c = 16; c < 256 && COLORS >= 256; c++ )); do
-      FG[c]="${CSI}38;5;${c}m"
-      BG[c]="${CSI}48;5;${c}m"
-    done
-    SGR[bold]="${CSI}1m"
-    SGR[dim]="${CSI}2m"
-    SGR[italics]="${CSI}3m"
-    SGR[uline]="${CSI}4m"
-    SGR[blink]="${CSI}5m"
-    SGR[reverse]="${CSI}7m"
-    SGR[reset]="${CSI}m"
-    unset CSI
-  fi
-  # TODO: add one-letter and digit aliases for SGR
-  SGR[rev]="${SGR[reverse]}"
-  SGR[exit]="${SGR[reset]}"
-  SGR[0]="${SGR[reset]}"
-  SGR[1]="${SGR[bold]}"
-}
-
-colors::unset() {
   
+  local -n c="C$COLORS"
+  if (( ${#c[@]} )); then
+    A+=("${c[@]}")
+  else
+    A+=("${C[@]}")
+  fi
+  
+  if (( ${#A[@]} )); then
+    local IFS=';'
+    echo -n $E "$P0\e[${A[*]}m$P1"
+  fi
 }
-
-declare -r COLORS FG BG SGR
 

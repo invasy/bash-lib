@@ -1,14 +1,16 @@
 #!/bin/bash
 # vim: set ft=sh et sw=2 ts=2:
 
-#dir="$(dirname "$(realpath -qe "${BASH_SOURCE[0]}")")"
-#. "$dir/../lib.bash"
+. "$(realpath -qe "$(dirname "${BASH_SOURCE[0]}")/../lib.bash")"
+import colors
+
+declare -a C=(0 1 2 3) C8=(8 1 2 3 4 5 6 7 8) C16=(16) C256=(256 1)
+declare -n c="C0"
+echo ${c[0]} ${#c[@]}
+
+exit 0
 
 declare -g _ret_func=''
-
-_() {
-  echo "$@"
-}
 
 fail() {
   false 1"2 3" 34
