@@ -5,7 +5,7 @@
 ## @pre     lib.bash  (Bash scripting library).
 ## @pre     Git       (Git VCS).
 
-import_once || return $(($?-1))
+bash_lib || return $(($?-1))
 
 git::in_work_tree() {
   local inside="$(git rev-parse --is-inside-work-tree 2>/dev/null)"

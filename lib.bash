@@ -8,14 +8,14 @@
 
 ####  Source guard  #######################################################@{1
 [ x"$BASH_VERSION" = x ] && return 1  # Current shell is not Bash
-[[ -n $BASH_LIB ]] && return 0  # Sourced already
+[[ -n $BASH_LIB ]] && return 0  # Library was already sourced
 (( BASH_VERSINFO[0] < 4 )) && return 2  # Bash version is not supported
-type -f realpath dirname &>/dev/null || return 3  # Coreutils are not installed
+type -p dirname realpath &>/dev/null || return 3  # Coreutils are not installed
 
 ## @c BASH_LIB contains the path to the Bash library directory.
-declare -gr BASH_LIB="$(dirname "$(realpath -qe "${BASH_SOURCE[0]}")")/lib"
+declare -gr BASH_LIB="$(realpath -qe "$(dirname "${BASH_SOURCE[0]}")/lib")"
 
-####  Private functions  ##################################################@{1
+####  Library initialization  #############################################@{1
 _lib::init() {
   # Set options
   shopt -qs extglob   # enable extended pattern matching
@@ -25,15 +25,61 @@ _lib::init() {
 }
 
 ####  Exported functions  #################################################@{1
+
+## @brief   Bash library header.
+## @detail  Use `bash_lib || return $(($?-1))`
+##          at the beginning of the Bash library file (@c lib/*.sh).
+## @return  Import error.
+## @retval    0  OK.
+## @retval    1  Library was already imported.
+## @retval  125  This library was not imported correctly.
+## @retval  126  Bash lib was not initialized correctly.
+## @retval  127  'library: command not found' (returned by Bash itself).
+bash_lib() {
+  [ x"$BASH_LIB" = x ] && return 126
+
+  local name="$1"
+  local -i version="${2:-1}"
+
+  if [[ -z $name ]]; then
+    name="$(relpath "${BASH_SOURCE[1]}" "$BASH_LIB")"
+    name="${name%.*}"
+  fi
+  name="__BASH_${name^^}__"
+
+  eval "(($name))" && return 1
+  is_imported 2 || return 125
+
+  eval "declare -gri $name='$version'"
+}
+
+## @brief   Import Bash library.
+## @param   $1  Library name.
+## @param   $@  Additional parameters for the library.
+## @return  Error code.
+## @retval   0  OK.
+## @retval   1  Missing library name (arg 1).
+## @retval   2  Cannot read library file.
+import() {
+  [[ -n $1 ]] || return 1
+  local lib="$1"; shift
+
+  # Add lib dir if path is relative
+  [[ ${lib:0:1} != '/' ]] && lib="$BASH_LIB/$lib"
+  # Try to add a filename suffix
+  [[ ! -f "$lib" ]] && lib+='.sh'
+
+  [[ -r $lib ]] || return 2
+
+  source "$lib" "$@"
+}
+
 ## @name  Function stubs.
 ## @{
 _() { echo "$@"; }
 dbg() { :; }
 title() { false; }
 ## @}
-
-## @name  Source guards.
-## @{
 
 ## @brief   Is this script sourced?
 ## @param   $1  Function call stack frame number (>= 1).
@@ -54,56 +100,6 @@ is_imported() {
   local -i frame="${1:-1}"
   [[ ${FUNCNAME[frame]} == 'source' && ${FUNCNAME[frame+1]} == 'import' ]]
 }
-
-## @brief   Import a library file only once.
-## @detail  Use `import_once || return $(($?-1))`
-##          at the beginning of the Bash library file (@c lib/*.sh).
-## @return  Import error.
-## @retval    0  OK.
-## @retval    1  Library has been imported already.
-## @retval    2  Bash lib was not initialized correctly.
-## @retval    3  This library was not imported correctly.
-## @retval  127  import_once: command not found (retured by Bash).
-import_once() {
-  [ x"$BASH_LIB" = x ] && return 2
-
-  local name="$(relpath "${BASH_SOURCE[1]}" "$BASH_LIB")"
-  name="${name%.*}"; name="_BASH_${name^^}_"
-
-  eval "(($name))" && return 1
-  is_imported 2 || return 3
-
-  local -i version="${1:-1}"
-  eval "declare -gri $name='$version'"
-
-  return 0
-}
-## @}
-
-## @name  Source libraries.
-## @{
-
-## Import Bash library.
-## @param   $1  Library name.
-## @param   $@  Additional parameters for the library.
-## @return  Error code.
-## @retval   0  OK.
-## @retval   1  Missing library name (arg 1).
-## @retval   2  Cannot read library file.
-import() {
-  [[ -n $1 ]] || return 1
-  local lib="$1"; shift
-
-  # Add lib dir if path is relative
-  [[ ${lib:0:1} != '/' ]] && lib="$BASH_LIB/$lib"
-  # Try to add a filename suffix
-  [[ ! -f "$lib" ]] && lib+='.sh'
-
-  [[ -r $lib ]] || return 2
-
-  source "$lib" "$@"
-}
-## @}
 
 ## Convert array to a regular expression.
 ## @param   $@  Array values.

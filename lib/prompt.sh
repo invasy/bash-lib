@@ -8,9 +8,9 @@
 ## @see https://www.askapache.com/linux/bash-power-prompt/
 ## @see https://gitweb.gentoo.org/repo/gentoo.git/tree/app-shells/bash/files/bashrc
 
-import_once || return $(($?-1))
+bash_lib || return $(($?-1))
+
 import colors
-import title
 import git
 
 declare -gA PROMPT_COLOR PROMPT_CHAR
@@ -52,6 +52,7 @@ prompt::init() {
 
   declare -r PROMPT_COLOR PROMPT_CHAR
   declare -g PROMPT_COMMAND='prompt::cmd;'
+  #declare -g PS0='\[\e]2;bash> ${BASH_COMMAND}\e\\\]'
   export VIRTUAL_ENV_DISABLE_PROMPT=1
 }
 
@@ -79,7 +80,7 @@ prompt::cmd() {
     return
   fi
 
-  local R="\[$SGR0\]" x u='user' user at host dir venv char chroot
+  local R="\[$SGR0\]" x u='user' user at host dir venv char title chroot
   (( EUID )) || u='root'  # Superuser
 
   # Set prompt fragments
@@ -90,6 +91,9 @@ prompt::cmd() {
   char="${PROMPT_COLOR[$u]}${PROMPT_CHAR[$u]}$R"
   chroot="${debian_chroot:+($debian_chroot) }"
 
+  if (( PROMPT_TITLE )); then
+    title='\[\e]2;bash> \u@\h:\w\e\\\]'
+  fi
   if [[ -n $SSH_TTY ]]; then
     # Connected over SSH
     at="${PROMPT_COLOR[ssh]}${PROMPT_CHAR[at]}$R"
@@ -100,8 +104,7 @@ prompt::cmd() {
   fi
 
   # Set prompt
-  PS1="╭$chroot$user$at$host:$dir$(prompt::vcs)$venv\n╰$char "
+  PS1="$title╭$chroot$user$at$host:$dir$(prompt::vcs)$venv\n╰$char "
 
   echo -en '\e[6n' && read -sdR x && (( ${x##*;} > 1 )) && echo
 }
-

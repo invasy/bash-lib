@@ -5,9 +5,9 @@
 ## @pre     lib.bash  (Bash scripting library).
 ## @pre     ncurses   (tput).
 
-import_once || return $(($?-1))
+bash_lib || return $(($?-1))
 
-if ! type -p tput >/dev/null || [[ $1 == '0' ]]; then
+if ! type -p tput &>/dev/null || [[ $1 == '0' ]]; then
   declare -gir COLORS=0
   declare -gr SGR0=''
   SGR() { :; }
@@ -87,4 +87,3 @@ SGR() {
     echo -n $E "$P0\e[${A[*]}m$P1"
   fi
 }
-
