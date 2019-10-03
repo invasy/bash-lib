@@ -12,6 +12,7 @@
 (( BASH_VERSINFO[0] < 4 )) && return 2  # Bash version is not supported
 type -p dirname realpath &>/dev/null || return 3  # Coreutils are not installed
 
+# shellcheck disable=SC2155
 ## @c BASH_LIB contains the path to the Bash library directory.
 declare -gr BASH_LIB="$(realpath -qe "$(dirname "${BASH_SOURCE[0]}")/lib")"
 
@@ -71,6 +72,7 @@ import() {
 
   [[ -r $lib ]] || return 2
 
+  # shellcheck source=lib/*.sh
   source "$lib" "$@"
 }
 
@@ -106,6 +108,7 @@ is_imported() {
 ## @return  Nothing.
 ## @stdout  Regular expression for array.
 a2re() {
+  # shellcheck disable=SC1003
   local -a r=("$@") s=('|' '*' '+' '?' '{' '}' '(' ')' '[' ']' '.' '^' '$' '\')
   local c
 
@@ -126,7 +129,7 @@ a2re() {
 ## @retval   1  Not found.
 ## @retval  -1  Missing arguments.
 in_array() {
-  [[ -n $1 && -n $2 ]] || return -1
+  [[ -n $1 && -n $2 ]] || return 255
 
   local -n haystack="$1"
   local needle="$2" hay
