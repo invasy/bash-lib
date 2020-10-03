@@ -10,9 +10,10 @@ bash_lib || return $(($?-1))
 import sysexits
 
 ####  Private functions  ##################################################@{1
+# shellcheck disable=SC1004
 _exceptions::init() {
-  ## Throw exception if there is non-zero status.
-  declare -gi EXCEPTIONS_ERREXIT="${1:-0}"
+  # shellcheck disable=SC2034
+  declare -gi EXCEPTIONS_ERREXIT="${1:-0}"  ##< Throw exception if there is non-zero status.
 
   declare -gA _error  ##< Error info. Set by ERR trap handler.
   _error[code]=0      ##< Exit/return code (0..255) (@see sysexits.bash).
@@ -79,11 +80,11 @@ _exceptions::match() {
 
   local n c conditions=0  # Sic! It's a zero here. Don't touch!
 
-  for n in ${1//*([ \t]);*([ \t])/ }; do
+  for n in ${1//*([ 	]);*([ 	])/ }; do
     case $n in
       $EX_NAMES) c="(_exc[code]==${EX[$n]})" ;;
       +([0-9]))  c="(_exc[code]==$n)"        ;;
-      +([0-9])*([ \t])-*([ \t])+([0-9]))
+      +([0-9])*([ 	])-*([ 	])+([0-9]))
         c="(_exc[code]>=${n%%*([ \t])-*([ \t])+([0-9])}&&"
         c+="_exc[code]<=${n##+([0-9])*([ \t])-*([ \t])})"
         ;;
@@ -118,6 +119,7 @@ _exceptions::handler() {
   return 0
 }
 
+# shellcheck disable=SC2034
 _exceptions::try() {
   (( _try_level++ ))
   _try_source[_try_level]="${BASH_SOURCE[1]}"
@@ -130,9 +132,9 @@ _exceptions::try() {
 }
 
 _exceptions::end_try() {
-  (( _try_level )) || return ${EX[SOFTWARE]}
+  (( _try_level )) || return "${EX[SOFTWARE]}"
 
-  unset _try_source[_try_level] _try_func[_try_level] _try_line[_try_level]
+  unset '_try_source[_try_level]' '_try_func[_try_level]' '_try_line[_try_level]'
   (( _try_level-- ))
 
   _exc_patterns=() _exc_handlers=()
@@ -146,9 +148,9 @@ alias end_try='break; done; _exceptions::end_try '
 
 catch() {
   if (( _try_level == 0 )); then
-    return ${EX[SOFTWARE]}
+    return "${EX[SOFTWARE]}"
   elif [[ -z $1 || -z $2 ]]; then
-    return ${EX[USAGE]}
+    return "${EX[USAGE]}"
   fi
 
   _exc_patterns+=("$1"); shift
@@ -158,12 +160,12 @@ catch() {
 }
 
 throw() {
-  local -- OPT OPTARG k r=
-  local -i OPTIND depth=1 i
+  local -- OPT OPTARG r=
+  local -i OPTIND OPTERR=0 depth=1 i
 
   # Default values for exception parameters
   _exc[code]=1 _exc[continue]=0 _exc[handled]=0
-  _exc[msg]= _exc[arg]= _exc[source]= _exc[func]= _exc[line]=
+  _exc[msg]='' _exc[arg]='' _exc[source]='' _exc[func]='' _exc[line]=''
   _exc_callstack=()
 
   # Process options
@@ -184,9 +186,9 @@ throw() {
   (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
 
   if (( depth >= 1 )); then
-    : ${_exc[source]:=${BASH_SOURCE[depth]}}
-    : ${_exc[func]:=${FUNCNAME[depth]}}
-    : ${_exc[line]:=${BASH_LINENO[depth-1]}}
+    : "${_exc[source]:=${BASH_SOURCE[depth]}}"
+    : "${_exc[func]:=${FUNCNAME[depth]}}"
+    : "${_exc[line]:=${BASH_LINENO[depth-1]}}"
   fi
 
   # Error message (format string).
@@ -212,13 +214,14 @@ throw() {
 perror() {
   (( _exc[code] )) || return 0
 
-  local source= msg
+  local source='' msg
 
   if [[ $1 == '-s' ]]; then
     source=" <${_exc[code]}> at '$(relpath "${_exc[source]}")':${_exc[line]}"
     shift
   fi
 
+  # shellcheck disable=SC2059
   msg="$(printf "${_exc[msg]}" "${_exc_args[@]}")"
   echo -e "${1:+$1: }$msg$source" >&2
 
@@ -228,7 +231,7 @@ perror() {
 confess() {
   (( _exc[code] )) || return 0
 
-  local func caller s=
+  local func caller s=''
 
   perror -s "$1"
   for func in "${_exc_callstack[@]}"; do

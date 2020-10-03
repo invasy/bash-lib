@@ -73,15 +73,14 @@ prompt::vcs() {
 prompt::cmd() {
   history -a
 
-  if [[ -n $MC_SID ]]; then
-    # In Midnight Commander
+  if [[ -n $MC_SID ]]; then # in Midnight Commander
     PS1='\u@\h:\w\$ '
     return
   fi
 
-  local R="\[$SGR0\]" TSL='\[\e]2;' FSL='\e\\\]' x u='user'
+  local R="\[$SGR0\]" TSL='\[\e]2;' FSL='\e\\\]' u='user'
   local user at host dir venv char title chroot
-  (( EUID )) || u='root'  # Superuser
+  (( EUID )) || u='root' # Superuser
 
   # Set prompt fragments
   user="${PROMPT_COLOR[$u]}\u$R"
@@ -89,22 +88,26 @@ prompt::cmd() {
   host="${PROMPT_COLOR[host]}\h$R"
   dir="${PROMPT_COLOR[dir]}\w$R"
   char="${PROMPT_COLOR[$u]}${PROMPT_CHAR[$u]}$R"
+  title="$PROMPT_TITLE"
 
-  if [[ -n $SSH_TTY ]]; then
-    # Connected over SSH
+  if [[ -n $SSH_TTY ]]; then # connected over SSH
     at="${PROMPT_COLOR[ssh]}${PROMPT_CHAR[at]}$R"
-    [[ -n $PROMPT_TITLE ]] && PROMPT_TITLE="[SSH] $PROMPT_TITLE"
+    [[ -n $title ]] && title="[SSH] $title"
   fi
-  if [[ -n $VIRTUAL_ENV ]]; then
-    # Python virtual environment is activated
+  if [[ -n $VIRTUAL_ENV ]]; then # in Python virtual environment
     venv=" (${PROMPT_COLOR[venv]}$(relpath "$VIRTUAL_ENV")$R)"
   fi
 
-  title="${PROMPT_TITLE:+$TSL$PROMPT_TITLE$FSL}"
+  title="${title:+$TSL$title$FSL}"
   chroot="${debian_chroot:+($debian_chroot) }"
 
   # Set prompt
   PS1="$title╭$chroot$user$at$host:$dir$(prompt::vcs)$venv\n╰$char "
 
-  echo -en '\e[6n' && read -sdR x && (( ${x##*;} > 1 )) && echo
+  local stty column
+  stty="$(stty -g)" && stty raw -echo min 0 \
+  && echo -en '\e[6n' && read -sdR column \
+  && stty "$stty" && (( ${column##*;} > 1 )) && echo
 }
+
+# vim: set et sw=2 ts=2:

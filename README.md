@@ -25,4 +25,5 @@
 ## Links
 
 - [GNU Bash Manual](https://www.gnu.org/software/bash/manual/)
+- [Advanced Bash-Scripting Guide](https://tldp.org/LDP/abs/html/)
 - [Google Shell Style Guide](https://google.github.io/styleguide/shell.xml)

@@ -1,7 +1,7 @@
 ## @file    $XDG_DATA_HOME/bash/lib/git.sh
 ## @brief   Bash functions for Git.
 ## @author  Vasiliy Polyakov
-## @date    2019
+## @date    2019-2020
 ## @pre     lib.bash  (Bash scripting library).
 ## @pre     Git       (Git VCS).
 
@@ -15,7 +15,6 @@ git::in_work_tree() {
 git::in_git_dir() {
   local inside="$(git rev-parse --is-inside-git-dir 2>/dev/null)"
   [[ $inside == 'true' ]]
-
 }
 
 git::dir() {
@@ -23,7 +22,8 @@ git::dir() {
 }
 
 git::branch() {
-  git rev-parse --abbrev-ref --symbolic-full-name @
+  local branch="$(git rev-parse --abbrev-ref --symbolic-full-name @ 2>/dev/null)"
+  [[ $branch == '@' ]] && echo "$(_ "<no commits>")" || echo "$branch"
 }
 
 git::remote() {

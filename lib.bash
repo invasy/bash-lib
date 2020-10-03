@@ -1,15 +1,15 @@
 ## @file    $XDG_DATA_HOME/bash/lib.bash
 ## @brief   Bash scripting library.
 ## @author  Vasiliy Polyakov
-## @date    2016-2019
+## @date    2016-2020
 ## @pre     bash>=4.0  (GNU Bourne again shell).
 ## @pre     coreutils  (@c dirname, @c realpath).
 ## @pre     doxygen    (for API reference, optional).
 
 ####  Source guard  #######################################################@{1
-[ x"$BASH_VERSION" = x ] && return 1  # Current shell is not Bash
-[[ -n $BASH_LIB ]] && return 0  # Library was already sourced
-(( BASH_VERSINFO[0] < 4 )) && return 2  # Bash version is not supported
+[ x"$BASH_VERSION" = x ] && return 1              # Current shell is not Bash
+[[ -n $BASH_LIB ]] && return 0                    # Library was already sourced
+(( BASH_VERSINFO[0] < 4 )) && return 2            # Bash version is not supported
 type -p dirname realpath &>/dev/null || return 3  # Coreutils are not installed
 
 # shellcheck disable=SC2155
@@ -35,7 +35,7 @@ _lib::init() {
 ## @retval    1  Library was already imported.
 ## @retval  125  This library was not imported correctly.
 ## @retval  126  Bash lib was not initialized correctly.
-## @retval  127  'library: command not found' (returned by Bash itself).
+## @retval  127  'bash_lib: command not found' (returned by Bash itself).
 bash_lib() {
   [ x"$BASH_LIB" = x ] && return 126
 
@@ -70,9 +70,9 @@ import() {
   # Try to add a filename suffix
   [[ ! -f "$lib" ]] && lib+='.sh'
 
-  [[ -r $lib ]] || return 2
+  [[ -r "$lib" ]] || return 2
 
-  # shellcheck source=lib/*.sh
+  # shellcheck source=/dev/null
   source "$lib" "$@"
 }
 

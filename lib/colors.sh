@@ -43,7 +43,7 @@ SGR() {
   local OPT OPTARG E='-e' P0='' P1=''
   local -i OPTIND
   local -a A C C8 C16 C256
-  
+
   while getopts ':Ep' OPT; do
     case $OPT in
       E) E='' ;;
@@ -67,21 +67,21 @@ SGR() {
       bold|b) A+=(1) ;;
       dim) A+=(2) ;;
       italics|i) A+=(3) ;;
-      underline|undescore|uline|ul|u) A+=(4) ;;
+      underline|underscore|uline|ul|u) A+=(4) ;;
       blink) A+=(5) ;;
       reverse|inverse) A+=(7) ;;
       normal|n) A+=(22) ;;
       +([0-9])) A+=($1)
     esac; shift
   done
-  
+
   local -n c="C$COLORS"
   if (( ${#c[@]} )); then
     A+=("${c[@]}")
   else
     A+=("${C[@]}")
   fi
-  
+
   if (( ${#A[@]} )); then
     local IFS=';'
     echo -n $E "$P0\e[${A[*]}m$P1"
