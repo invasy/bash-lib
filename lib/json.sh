@@ -20,13 +20,15 @@
 ## @retval   65  parser  expected ',' or '}'
 ## @retval   65  parser  expected ',' or ']'
 ## @retval   65  parser  expected end of file
+## @todo    rewrite this library, update for new `lib.bash`
 ## @todo    change callback signature to <callback> <level> <name> <keys> <type> [value]
 ##          (add @c level argument to callback functions).
 
-source_guard || return $?
-use debug
-use try
-use arrays
+bash_lib -n || return $(($?-1))
+
+import debug
+import try
+import arrays
 
 ####  Constants  ###########################################################@{
 # Regular expressions for tokens {{{2

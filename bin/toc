@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+main=$1; shift
+libs=''
+
+for lib; do
+  descr="$(sed -En '1s/^#+ *(.*)$/\1/p' "$lib")"
+  [[ $descr ]] && libs+="- [$descr](${lib##*/})\n"
+done
+
+sed -E "/@LIBS@/s:@LIBS@:$libs:" -i "$main"
+
+exit 0

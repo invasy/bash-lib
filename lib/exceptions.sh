@@ -1,13 +1,11 @@
 ## @file    $XDG_DATA_HOME/bash/lib/exceptions.sh
 ## @brief   Bash exception handling.
 ## @author  Vasiliy Polyakov
-## @date    2016-2019
+## @date    2016-2020
 ## @pre     lib.bash     (Bash scripting library).
 ## @pre     sysexits.sh  (exit/return code constants).
 
 bash_lib || return $(($?-1))
-
-import sysexits
 
 ####  Private functions  ##################################################@{1
 # shellcheck disable=SC1004
@@ -15,21 +13,21 @@ _exceptions::init() {
   # shellcheck disable=SC2034
   declare -gi EXCEPTIONS_ERREXIT="${1:-0}"  ##< Throw exception if there is non-zero status.
 
-  declare -gA _error  ##< Error info. Set by ERR trap handler.
-  _error[code]=0      ##< Exit/return code (0..255) (@see sysexits.bash).
-  _error[source]=''   ##< Source file where error occured.
-  _error[func]=''     ##< Function where error occured.
-  _error[line]=0      ##< Line number where error occured.
-  _error[cmd]=''      ##< Errorous command.
+  declare -gA _error             ##< Error info. Set by ERR trap handler.
+  _error[code]=0                 ##< Exit/return code (0..255) (@see sysexits.bash).
+  _error[source]=''              ##< Source file where error occured.
+  _error[func]=''                ##< Function where error occured.
+  _error[line]=0                 ##< Line number where error occured.
+  _error[cmd]=''                 ##< Errorous command.
 
-  declare -gA _exc   ##< Exception info. Set by @c throw function.
-  _exc[code]=0       ##< Exit/return code (0..255) (@see sysexits.bash).
-  _exc[msg]=''       ##< Textual error message.
-  _exc[func]=''      ##< Function name.
-  _exc[source]=''    ##< Script filename.
-  _exc[line]=0       ##< Line number.
-  _exc[handled]=0    ##< Exception handled.
-  _exc[continue]=0   ##< Continue execution.
+  declare -gA _exc               ##< Exception info. Set by @c throw function.
+  _exc[code]=0                   ##< Exit/return code (0..255) (@see sysexits.bash).
+  _exc[msg]=''                   ##< Textual error message.
+  _exc[func]=''                  ##< Function name.
+  _exc[source]=''                ##< Script filename.
+  _exc[line]=0                   ##< Line number.
+  _exc[handled]=0                ##< Exception handled.
+  _exc[continue]=0               ##< Continue execution.
 
   declare -ga _exc_args=()       ##< Error message arguments.
   declare -ga _exc_callstack=()  ##< Function calls stack.
@@ -174,13 +172,16 @@ throw() {
       0) r=0 ;;
       d) depth="$OPTARG" ;;
       s) _exc[source]="$OPTARG" ;;
-      f) _exc[func]="$OPTARG"   ;;
-      l) _exc[line]="$OPTARG"   ;;
+      f) _exc[func]="$OPTARG" ;;
+      l) _exc[line]="$OPTARG" ;;
       c)
         case $OPTARG in
           $EX_NAMES) _exc[code]="${EX[$OPTARG]}" ;;
           +([0-9]))  _exc[code]="$OPTARG"        ;;
-        esac
+        esac ;;
+      :)  echo "throw: missing argument for '-$OPTARG'" >&2; return "${EX[USAGE]}" ;;
+      \?) echo "throw: invalid argument '-$OPTARG'" >&2; return "${EX[USAGE]}" ;;
+      *)  echo "throw: cannot parse arguments" >&2; return "${EX[USAGE]}" ;;
     esac
   done
   (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
@@ -239,7 +240,9 @@ confess() {
     if [[ $func =~ ^([^#]+)#([^#]+)#([0-9]+)#(.*)$ ]]; then
       caller="${BASH_REMATCH[2]}"
       s+="${BASH_REMATCH[1]}() called"
-      [[ $caller != 'main' ]] && s+=" from $caller()"
+      if [[ $caller != 'main' ]]; then
+        s+=" from $caller()"
+      fi
       s+=" at '$(relpath "${BASH_REMATCH[4]}")':${BASH_REMATCH[3]}"
     else
       s+="$func"
@@ -253,4 +256,4 @@ confess() {
 
 _exceptions::init "$@"
 
-# vim: set et sw=2 ts=2 fen fdm=marker fmr=@{,@}:
+# vim: set et sw=2 ts=2 fdm=marker fmr=@{,@}:

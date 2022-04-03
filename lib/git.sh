@@ -1,19 +1,24 @@
-## @file    $XDG_DATA_HOME/bash/lib/git.sh
-## @brief   Bash functions for Git.
-## @author  Vasiliy Polyakov
-## @date    2019-2020
-## @pre     lib.bash  (Bash scripting library).
-## @pre     Git       (Git VCS).
+## # Git
+##
+## Copyright © 2019-2022 [Vasiliy Polyakov](mailto:bash@invasy.dev).
+##
+## ## Prerequisites
+## - `lib.bash` - Bash scripting library;
+## - [Git](https://git-scm.com/downloads).
+##
+# TODO: add documentation
 
 bash_lib || return $(($?-1))
 
 git::in_work_tree() {
-  local inside="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
+  local inside
+  inside="$(git rev-parse --is-inside-work-tree 2>/dev/null)" || return "$?"
   [[ $inside == 'true' ]]
 }
 
 git::in_git_dir() {
-  local inside="$(git rev-parse --is-inside-git-dir 2>/dev/null)"
+  local inside
+  inside="$(git rev-parse --is-inside-git-dir 2>/dev/null)" || return "$?"
   [[ $inside == 'true' ]]
 }
 
@@ -22,16 +27,17 @@ git::dir() {
 }
 
 git::branch() {
-  local branch="$(git rev-parse --abbrev-ref --symbolic-full-name @ 2>/dev/null)"
-  [[ $branch == '@' ]] && echo "$(_ "<no commits>")" || echo "$branch"
+  local branch
+  branch="$(git rev-parse --abbrev-ref --symbolic-full-name @ 2>/dev/null)" || return "$?"
+  [[ $branch == '@' ]] && _ '<no commits>' || echo "$branch"
 }
 
 git::remote() {
-  git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
+  git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
 }
 
 git::is_changed() {
-  ! git diff --quiet
+  ! git diff --quiet 2>/dev/null
 }
 
 git::is_staged() {
@@ -47,14 +53,15 @@ git::staged() {
 }
 
 git::ahead() {
-  git log --no-decorate --no-merges --oneline @{upstream}..@ | wc --lines
+  git log --no-decorate --no-merges --oneline '@{upstream}..@' | wc --lines
 }
 
 git::behind() {
-  git log --no-decorate --no-merges --oneline @..@{upstream} | wc --lines
+  git log --no-decorate --no-merges --oneline '@..@{upstream}' | wc --lines
 }
 
 git::action() {
+  # shellcheck disable=SC2155
   local dir="$(git::dir)" in
 
   if [[ -f "$dir/MERGE_HEAD" ]]; then
@@ -82,3 +89,4 @@ git::action() {
   [[ -n $in ]] && echo "$in"
 }
 
+# vim: set et sw=2 ts=2 fdm=marker fmr=@{,@}:

@@ -1,15 +1,15 @@
 ## @file    $XDG_DATA_HOME/bash/lib/arrays.sh
 ## @brief   Multidimensional arrays in Bash.
 ## @author  Vasiliy Polyakov
-## @date    2016-2019
+## @date    2016-2020
 ## @pre     bash           (GNU Bourne again shell).
 ## @pre     lib.bash       (Bash scripting library).
 ## @pre     sysexits.bash  (exit/return code constants).
+## @todo    Rewrite this library, update for new `lib.bash`.
 ## @todo    mda(): Add set and get functionality.
 ## @todo    Add exception handling.
 
-source_guard || return $?
-use sysexits
+bash_lib -n || return $(($?-1))
 
 ####  Subroutines  #######################################################{{{1
 # aset_json <name> <keys> <type> [value]
@@ -79,7 +79,7 @@ mda() {
 				if [[ $keys ]]; then
 					keys="${keys//[][]/_}"; keys="_${keys%_}"
 				fi
-				eval "echo \"\${!$name$keys[@]}\""
+				eval "echo \"\${!${name}${keys}[@]}\""
 				;;
 		esac
 	break; done; eval "$(end_try)"
@@ -94,6 +94,7 @@ aset() {
 	[[ $keys && $keys =~ ^((\[([^]]+)\])*)\[([^]]+)\]$ ]] || return 2
 
 	key="${BASH_REMATCH[4]}"
+	# shellcheck disable=SC2180
 	keys="${BASH_REMATCH[1]//+([][])/_}"
 	keys="${keys%%_}"; name="$name$keys"
 
@@ -111,35 +112,39 @@ aset() {
 
 	return 0
 
-	((DEBUG)) && echo "aset: array='$array' keys='$@'" >&2
+	if (( DEBUG != 0 )); then
+	  echo "aset: array='$array' keys='$*'" >&2
+  fi
 	while true; do
-		declare -p $array &>/dev/null || declare -gA $array
+		declare -p "$array" &>/dev/null || declare -gA "$array"
 		key="$1"; shift
 		((DEBUG)) && printf "%2u: %s[%s]\n" $i "$array" "$key" >&2
 		[[ $1 ]] || break
 		[[ $1 == '=' ]] && { shift; break; }
-		eval $array[$key]="@${array}_${key}" array="${array}_${key}" key=""
-		((DEBUG)) && printf "%2u: %s[%s]\n" $i "$array" "$key" >&2
+		eval "${array}[$key]=\"@${array}_${key}\" array=\"${array}_${key}\" key=\"\""
+		((DEBUG)) && printf "%2u: %s[%s]\n" "$i" "$array" "$key" >&2
 		((i++))
 	done
 	if [[ $1 ]]; then
-		eval $array[$key]="$1"
+		eval "${array}[$key]=\"$1\""
 	else
 		value=$(aget "$array" "$key")
-		(($? == 254)) && unset $value
-		unset $array[$key]
+		(($? == 254)) && unset "$value"
+		# shellcheck disable=SC1087
+		unset "$array[$key]"
 	fi
 }
 
 # aget <name> <index0> [<index1> …]
 aget() {
-	[[ $1 ]] || return ${EX[USAGE]}
+	[[ $1 ]] || return "${EX[USAGE]}"
 
 	local -i i=0
 	local name key value
 
 	if [[ $1 =~ ([^]]+)((\[[^]]+\])*) ]]; then
 		name="${BASH_REMATCH[1]}"
+		# shellcheck disable=SC2086 disable=SC2180
 		set -- ${BASH_REMATCH[2]//[][]/ }
 	else
 		name="$1"; shift
@@ -148,7 +153,7 @@ aget() {
 	while (( $# )); do
 		key="$1"; shift
 		[[ -n $name ]] || return $i
-		eval value="\${$name[$key]}"; ((i++))
+		eval value="\${${name[$key]}"; ((i++))
 		case ${value:0:1} in
 			'@'|'%'|'*') name="${value:1}" ;;
 			*) name=""
@@ -156,7 +161,7 @@ aget() {
 	done
 
 	if [[ $name ]]; then
-		echo "$name";  return -2
+		echo "$name";  return 254
 	elif [[ $value ]]; then
 		echo "$value"; return 0
 	else
@@ -166,13 +171,13 @@ aget() {
 
 # akeys <array>
 akeys() {
-	[[ $1 ]] || return -1
+	[[ $1 ]] || return 255
 
 	local -a keys
 	local array key
 
 	array="$1"
-	eval keys=("\${!$array[@]}")
+	eval "keys=(\"\${!${array}[@]}\")"
 	for key in "${keys[@]}"; do
 		echo "$key"
 	done
@@ -180,7 +185,7 @@ akeys() {
 
 # asize <array>
 asize() {
-	[[ $1 ]] || return -1
+	[[ $1 ]] || return 255
 
 	eval "echo \"\${#$1[@]}\""
 }
@@ -189,11 +194,11 @@ aprint() {
 	local -a keys
 	local array key value
 
-	eval "keys=(\"\${!${array_name}[@]}\")"
+	eval "keys=(\"\${!${array}[@]}\")"
 	for key in "${keys[@]}"; do
-		eval value="\${${array_name}[${key}]}"
+		eval value="\${${array}[${key}]}"
 		echo "$key: $value"
 	done
 }
 
-# vim: set fen fdm=marker fmr={{{,}}}:
+# vim: set et sw=2 ts=2 fdm=marker fmr=@{,@}:

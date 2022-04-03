@@ -1,19 +1,21 @@
 ## @file    $XDG_DATA_HOME/bash/lib/hooks.sh
 ## @brief   Bash hook functions (Zsh-like).
 ## @author  Vasiliy Polyakov
-## @date    2015-2019
+## @date    2015-2020
 ## @pre     bash             (GNU Bourne again shell).
 ## @pre     lib.bash         (Bash scripting library).
 ## @pre     gettext.sh       (i18n, optional).
 ## @pre     exceptions.bash  (exception handling).
+## @todo    Rewrite this library.
 
-source_guard || return $?
+bash_lib -n || return $(($?-1))
 
 ####  Constants  ##########################################################@{1
 declare -gra _hooks=(precmd preexec)
 
 ####  Private functions  ##################################################@{1
 _hook::init() {
+  # shellcheck disable=SC2034
   declare -g BASH_HOOKS_SET=1
   declare -g PROMPT_COMMAND
   declare -ga precmd_functions preexec_functions
@@ -31,6 +33,7 @@ _hook::init() {
   fi
 
   # Set preexec hooks
+  # shellcheck disable=SC2064
   trap "$f_preexec" DEBUG
 }
 
@@ -51,7 +54,8 @@ _hook::preexec() {
   [[ $BASH_COMMAND == '_hook::precmd' ]] && return 0
 
   shopt -qs extglob
-  local f h="$(HISTTIMEFORMAT= history 1)"
+  # shellcheck disable=SC2155
+  local f h="$(HISTTIMEFORMAT='' history 1)"
   h="${h/*( )*([0-9])*( )}"
 
   for f in preexec "${preexec_functions[@]}"; do
@@ -114,11 +118,13 @@ _hook::add() {
 }
 
 _hook::del() {
+  # shellcheck disable=SC2178
   local -n hook="${1}_functions"
   local -- func="$2"
   local -i pattern="${3:-0}==2"
 
   if (( ${#hook[@]} )); then
+    # shellcheck disable=SC2206
     (( pattern )) && hook=(${hook[@]/*$func*}) || hook=(${hook[@]/$func})
     (( ${#hook[@]} )) || unset hook
   fi
@@ -149,15 +155,18 @@ hook() {
       \?) hook::throw USAGE "$(_ "invalid option '%s'")" "$OPTARG" ;;
       *)  break
     esac
-  done
-  (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
+  done; shift $(( OPTIND - 1 ))
 
   (( help || ! $# )) && { _hook::help; return 0; }
   (( list )) && { _hook::list "$1"; return $?; }
   [[ ! $1 ]] && _hook::throw USAGE "$(_ 'arg 1: missing hook name')"
   [[ ! $2 ]] && _hook::throw USAGE "$(_ 'arg 2: missing function name')"
   in_array _hooks "$1" || _hook::throw HOOK "$(_ "unknown hook '%s'")" "$1"
-  (( del )) && _hook::del "$1" "$2" "$del" || _hook::add "$1" "$2"
+  if (( del )); then
+    _hook::del "$1" "$2" "$del"
+  else
+    _hook::add "$1" "$2"
+  fi
 }
 
 _hook::init

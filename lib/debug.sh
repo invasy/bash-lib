@@ -1,13 +1,15 @@
 ## @file    $XDG_DATA_HOME/bash/lib/debug.sh
 ## @brief   Bash scripts debugging library.
 ## @author  Vasiliy Polyakov
-## @date    2016-2019
+## @date    2016-2020
 ## @pre     bash           (GNU Bourne again shell).
 ## @pre     lib.bash       (Bash scripting library).
 ## @pre     sysexits.bash  (exit/return codes).
 
-source_guard || return $?
-use hooks
+bash_lib || return $(($?-1))
+# TODO: rewrite this library
+return "${EX[NOTIMPL]}"  # Not implemented
+import hooks
 
 ####  Variables  ##########################################################@{1
 declare -gi DEBUG  ##< Debugging level.
@@ -37,11 +39,14 @@ _trace::callstack() {
 }
 
 _trace::enter() {
-  (( ! _trace[on] )) && return ${EX[SOFTWARE]}
+  if (( _trace[on] == 0 )); then
+    return "${EX[SOFTWARE]}"
+  fi
 
-  [[ ${BASH_COMMAND#${FUNCNAME[1]}} == "$BASH_COMMAND" \
-     || ${FUNCNAME[1]} == @(?(end_)trace|_trace::@(enter|leave|callstack)) ]] \
-  && return 0
+  if [[ ${BASH_COMMAND#${FUNCNAME[1]}} == "$BASH_COMMAND" \
+     || ${FUNCNAME[1]} == @(?(end_)trace|_trace::@(enter|leave|callstack)) ]]; then
+    return 0
+  fi
 
   local -a argv argr=("${BASH_ARGV[@]:BASH_ARGC[0]:BASH_ARGC[1]}")
   local -i i
@@ -65,9 +70,13 @@ _trace::enter() {
 }
 
 _trace::leave() {
-  (( ! _trace[on] )) && return ${EX[SOFTWARE]}
+  if (( _trace[on] == 0 )); then
+    return "${EX[SOFTWARE]}"
+  fi
 
-  [[ ${FUNCNAME[1]} == @(?(end_)trace|_trace::@(enter|leave)) ]] && return 0
+  if [[ ${FUNCNAME[1]} == @(?(end_)trace|_trace::@(enter|leave)) ]]; then
+    return 0
+  fi
 
   if [[ ${_trace[cmd]} == return\ * ]]; then
     eval "_trace[ret]=\"${_trace[cmd]##return+([ \t])}\""
@@ -88,8 +97,12 @@ _trace::leave() {
 
 ####  Exported functions  #################################################@{1
 trace() {
-  (( ! DEBUG    )) && return 0
-  (( _trace[on] )) && return ${EX[SOFTWARE]}
+  if (( DEBUG == 0 )); then
+    return 0
+  fi
+  if (( _trace[on] != 0 )); then
+    return "${EX[SOFTWARE]}"
+  fi
 
   declare -gA _trace
   local k t
@@ -101,6 +114,7 @@ trace() {
     _trace[opts]+="$(shopt -p "$k" 2>/dev/null);"
     shopt -qs "$k"
   done
+  # shellcheck disable=SC2043
   for k in functrace; do
     _trace[opts]+="$(shopt -po "$k" 2>/dev/null);"
     shopt -qso "$k"
@@ -120,7 +134,9 @@ trace() {
 }
 
 end_trace() {
-  (( ! _trace[on] )) && return ${EX[SOFTWARE]}
+  if (( _trace[on] == 0 )); then
+    return "${EX[SOFTWARE]}"
+  fi
 
   # Restore traps and options
   eval "${_trace[traps]}${_trace[opts]}"
@@ -135,6 +151,7 @@ dbg() {
   if (( DEBUG )); then
     dbg() {
       local fmt="$1"; shift
+      # shellcheck disable=SC2059
       printf "DEBUG $fmt\n" "$@" >&2
     }
     dbg "$@"
@@ -143,4 +160,4 @@ dbg() {
   fi
 }
 
-# vim: set et sw=2 ts=2 fen fdm=marker fmr=@{,@}:
+# vim: set et sw=2 ts=2 fdm=marker fmr=@{,@}:

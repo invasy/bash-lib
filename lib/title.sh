@@ -1,15 +1,18 @@
-## @file    $XDG_DATA_HOME/bash/lib/title.sh
-## @brief   Set terminal and window titles.
-## @author  Vasiliy Polyakov
-## @date    2019
-## @pre     lib.bash  (Bash scripting library).
-## @pre     ncurses   (tput).
+## # Terminal and window titles
+##
+## Copyright © 2014-2022 [Vasiliy Polyakov](mailto:bash@invasy.dev).
+##
+## ## Prerequisites
+## - `lib.bash` - Bash scripting library;
+## - `ncurses` — `tput`.
+##
+# TODO: add documentation
 
 bash_lib || return $(($?-1))
 type -p tput &>/dev/null || return 1
 
 title() {
-  local tsl=$'\e]2;' fsl=$'\e\\' title
+  local tsl=$'\e]2;' fsl='' title
 
   title="$*"
   title="${title@Q}"
@@ -22,3 +25,5 @@ title() {
   
   printf "$tsl%s$fsl" "$title"
 }
+
+# vim: set et sw=2 ts=2 fdm=marker fmr=@{,@}:

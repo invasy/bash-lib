@@ -15,10 +15,8 @@
 #    69  parser  expected ',' or ']'
 #    70  parser  expected end of file
 
-####  Source guard  ######################################################{{{1
-test x"$__YAML_SH__" != x      && return "$__YAML_SH__" || __YAML_SH__=0
-test x"$BASH_VERSION" = x      && { __YAML_SH__=-1; return "$__YAML_SH__"; }
-[[ ${FUNCNAME[0]} != source ]] && { __YAML_SH__=-2; return "$__YAML_SH__"; }
+bash_lib || return $(($?-1))
+return "${EX[NOTIMPL]}"  # Not implemented
 
 ####  Source libraries  ##################################################{{{1
 _yaml_lib="$(realpath -qe "${BASH_SOURCE[0]%/*}")"

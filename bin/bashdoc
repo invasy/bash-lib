@@ -1,0 +1,48 @@
+#!/usr/bin/gawk -f
+# Bash library documentation parser.
+# Gets and outputs Mardown-formatted special comments from libraries.
+#
+# Usage:
+#     bashdoc lib.bash > docs/bash-lib.md
+#     bashdoc lib/library.sh > docs/library.md
+#
+# Copyright © 2016—2022 Vasiliy Polyakov <bash@invasy.dev>
+
+# Shell options
+match($0, /^[ \t]*shopt[ \t]+-q?([su])[ \t]+([a-z_]+)[ \t]+## (.*)$/, m) {
+  if (m[1] == "u")
+    c = " "
+  else
+    c = "x"
+  printf "- [%s] `%s` — %s\n", c, m[2], m[3]
+  next
+}
+
+# Array values with optional description
+match($0, /([A-Za-z_][0-9A-Za-z_:]*)\[([A-Za-z_][0-9A-Za-z_]*)\]=([0-9]+)([ \t]*##<[ \t]*(.*))?/, m) {
+  if (m[5] != "") {
+    printf "- `[%s]=%s` — %s\n", m[2], m[3], m[5]
+  } else {
+    printf "- `[%s]=%s`\n", m[2], m[3]
+  }
+  next
+}
+
+# Headers
+match($0, /^[ \t]*##[ \t]+(#+ +[^#]+)[ \t]+#+(@\{[0-9]*)?$/, m) {
+  gsub(/ +$/, "", m[1])
+  gsub(/ +/, " ", m[1])
+  print m[1]
+  next
+}
+
+# Documentation lines
+match($0, /^[ \t]*##[ \t]+(.*)$/, m) {
+  print m[1]
+  next
+}
+
+# Empty lines
+/^[ \t]*##[ \t]*$/ {
+  print ""
+}
